@@ -1,116 +1,168 @@
-import Button from "@/components/commons/Button";
-import Loading from "@/components/commons/Loading";
-import MovieCard from "@/components/commons/MovieCard";
-import { MoviesProps } from "@/interfaces";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
-
-interface MProps {
-  movies: MoviesProps[]
+interface Movie {
+  id: string;
+  title: string;
+  image: string;
+  year: string | number;
+  author: string;
 }
 
-const Movies: React.FC<MProps> = () => {
-
-  const [page, setPage] = useState<number>(1)
-  const [year, setYear] = useState<number | null>(null)
-  const [genre, setGenre] = useState<string>("All")
-  const [movies, setMovies] = useState<MoviesProps[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
-
- const fetchMovies = useCallback(async () => {
-    setLoading(true)
-    const response = await fetch('/api/fetch-movies', {
-      method: 'POST',
-      body: JSON.stringify({
-        page,
-        year, 
-        genre: genre === "All" ? "" : genre
-      }),
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8'
-      }
-    })
-
-    if (!response.ok) {
-      setLoading(false)
-      throw new Error("Something went wrong")
-    }
-
-    const data = await response.json()
-    const results = data.movies
-    console.log(results)
-    setMovies(results)
-    setLoading(false)
-  }, [page, year, genre])
-
+export default function Movies() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchMovies()
-  }, [fetchMovies])
+    fetchMovies();
+  }, []);
 
+  const fetchMovies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/movies");
+      const data = await response.json();
 
-
+      if (data.success) {
+        setMovies(data.movies);
+      } else {
+        setError("Failed to load movies");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Error fetching movies");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#110F17] text-white px-4 md:px-10 lg:px-44">
-  <div className="py-16">
-    <div className="flex flex-col md:flex-row justify-between mb-4 items-center space-x-0 md:space-x-4">
-      <input
-        type="text"
-        placeholder="Search for a movie..."
-        className="border-2 w-full md:w-96 border-[#E2D609] outline-none bg-transparent px-4 py-2 rounded-full text-white placeholder-gray-400"
-      />
+    <div style={{ minHeight: "100vh", backgroundColor: "#111", color: "#fff" }}>
+      {/* Header */}
+      <header style={{ backgroundColor: "#222", padding: "20px", borderBottom: "2px solid #333" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <h1 style={{ margin: "0", fontSize: "32px", color: "#fff", cursor: "pointer" }}>
+              alx movie app
+            </h1>
+          </Link>
+        </div>
+      </header>
 
-      <select
-        onChange={(event: React.ChangeEvent<HTMLSelectElement>) => setYear(Number(event.target.value))}
-        className="border-2 border-[#E2D609] outline-none bg-transparent px-4 md:px-8 py-2 mt-4 md:mt-0 rounded-full w-full md:w-auto"
+      {/* Main Content */}
+      <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "30px 20px" }}>
+        <h2 style={{ fontSize: "28px", marginBottom: "30px" }}>Browse Movies</h2>
+
+        {loading && (
+          <div style={{ textAlign: "center", padding: "60px 20px", fontSize: "18px", color: "#999" }}>
+            Loading movies...
+          </div>
+        )}
+
+        {error && (
+          <div style={{ textAlign: "center", padding: "60px 20px", fontSize: "18px", color: "#f44" }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && movies.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: "20px",
+            }}
+          >
+            {movies.map((movie) => (
+              <div
+                key={movie.id}
+                style={{
+                  backgroundColor: "#222",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ position: "relative", width: "100%", paddingBottom: "133.33%" }}>
+                  <Image
+                    src={movie.image}
+                    alt={movie.title}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='220'%3E%3Crect fill='%23444' width='150' height='220'/%3E%3Ctext x='50%' y='50%' fill='%23999' text-anchor='middle' dy='.3em' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </div>
+                <div style={{ padding: "12px" }}>
+                  <h3
+                    style={{
+                      margin: "0 0 8px 0",
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {movie.title}
+                  </h3>
+                  <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#999" }}>
+                    {movie.year}
+                  </p>
+                  <p style={{ margin: "0 0 12px 0", fontSize: "11px", color: "#aaa" }}>
+                    by {movie.author}
+                  </p>
+                  <button
+                    style={{
+                      backgroundColor: "#0066cc",
+                      color: "#fff",
+                      border: "none",
+                      padding: "8px 16px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      width: "100%",
+                    }}
+                    onMouseOver={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = "#0052a3";
+                    }}
+                    onMouseOut={(e) => {
+                      (e.target as HTMLButtonElement).style.backgroundColor = "#0066cc";
+                    }}
+                  >
+                    View More
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && movies.length === 0 && !error && (
+          <div style={{ textAlign: "center", padding: "60px 20px", fontSize: "18px", color: "#999" }}>
+            No movies found
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer
+        style={{
+          backgroundColor: "#222",
+          padding: "20px",
+          textAlign: "center",
+          color: "#999",
+          marginTop: "40px",
+          borderTop: "2px solid #333",
+        }}
       >
-        <option value="">Select Year</option>
-        {
-          [2024, 2023, 2022, 2021, 2020, 2019].map((year: number) => (
-            <option value={year} key={year}>{year}</option>
-          ))
-        }
-      </select>
+        <p style={{ margin: "0" }}>&copy; 2024 alx movie app. All rights reserved.</p>
+      </footer>
     </div>
-
-    <p className="text-[#E2D609] text-xl mb-6 mt-6">Online streaming</p>
-    <div className="flex flex-col md:flex-row items-center justify-between">
-      <h1 className="text-lg md:text-6xl font-bold">{year} {genre} Movie List</h1>
-      <div className="flex flex-wrap space-x-0 md:space-x-4 mt-4 md:mt-0">
-        {
-          ['All', 'Animation', 'Comedy', 'Fantasy'].map((genre: string, key: number) => (
-            <Button title={genre} key={key} action={() => setGenre(genre)} />
-          ))
-        }
-      </div>
-    </div>
-
-    {/* Movies output */}
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 mt-10">
-      {
-        movies?.map((movie: MoviesProps, key: number) => (
-          <MovieCard
-            title={movie?.titleText.text}
-            posterImage={movie?.primaryImage?.url}
-            releaseYear={movie?.releaseYear.year}
-            key={key}
-          />
-        ))
-      }
-    </div>
-    <div className="flex justify-end space-x-4 mt-6">
-      <Button title="Previous" action={() => setPage(prev => prev > 1 ? prev - 1 : 1)} />
-      <Button title="Next" action={() => setPage(page + 1)} />
-    </div>
-  </div>
-  {
-    loading && <Loading />
-  }
-</div>
-
-  )
+  );
 }
-
-
-export default Movies;

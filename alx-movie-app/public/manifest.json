@@ -1,6 +1,6 @@
 {
-  "name": "Cine Seek",
-  "short_name": "CineSeek",
+  "name": "alx movie app",
+  "short_name": "alx",
   "icons": [
     {
       "src": "/icons/android-chrome-192x192.png",

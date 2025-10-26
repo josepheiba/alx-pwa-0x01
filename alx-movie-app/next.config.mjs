@@ -1,18 +1,19 @@
-import withPWAInit from "@ducanh2912/next-pwa";
+import withPWA from "@ducanh2912/next-pwa";
+
+const pwaConfig = withPWA({
+  dest: "public",
+  disable: false,
+  register: true,
+  skipWaiting: true,
+});
 
 /** @type {import('next').NextConfig} */
-
-const withPWA = withPWAInit({
-  dest: 'public'
-})
-
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['m.media-amazon.com'],
+    domains: ['m.media-amazon.com', 'image.tmdb.org', 'covers.openlibrary.org'],
+    unoptimized: false,
   },
 };
 
-export default withPWA({
-  ...nextConfig
-})
+export default pwaConfig(nextConfig);
