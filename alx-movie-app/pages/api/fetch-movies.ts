@@ -1,33 +1,54 @@
-import { MoviesProps } from "@/interfaces";
 import { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler (request: NextApiRequest, response: NextApiResponse)  {
+interface Book {
+  cover_i?: number;
+  key?: string;
+  title?: string;
+  first_publish_year?: number;
+  author_name?: string[];
+}
 
-  if (request.method === "POST") {
-    const { year, page, genre } = request.body;
-    const date = new Date();
-    const resp = await fetch(
-      `https://moviesdatabase.p.rapidapi.com/titles?year=${
-        year || date.getFullYear()
-      }&sort=year.decr&limit=12&page=${page}&${genre && `genre=${genre}`}`,
-      {
-        headers: {
-          "x-rapidapi-host": "moviesdatabase.p.rapidapi.com",
-          "x-rapidapi-key": `${process.env.MOVIE_API_KEY}`,
-        },
-      }
+interface ApiResponse {
+  docs?: Book[];
+}
+
+interface Movie {
+  id: string | number;
+  title: string;
+  image: string;
+  year: number | string;
+  author: string;
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  try {
+    // Using Open Library Movie API (free, no auth required)
+    const response = await fetch(
+      "https://openlibrary.org/search.json?subject=film&limit=20&has_fulltext=true"
     );
 
-    if (!resp.ok) throw new Error("Failed to fetch movies");
+    if (!response.ok) throw new Error("Failed to fetch");
 
-    const moviesResponse = await resp.json();
-    const movies: MoviesProps[] = moviesResponse.results;
+    const data: ApiResponse = await response.json();
 
-    return response.status(200).json({
-      movies,
-    });
-  } else {
-    response.setHeader('Allow', ['POST']);
-    response.status(405).end(`Method ${request.method} Not Allowed in here`);
+    // Transform the data to look like movie data
+    const movies: Movie[] = (data.docs || [])
+      .filter((book: Book) => book.cover_i)
+      .slice(0, 12)
+      .map((book: Book, idx: number) => ({
+        id: book.key || idx,
+        title: book.title || "Unknown",
+        image: `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`,
+        year: book.first_publish_year || "N/A",
+        author: (book.author_name || ["Unknown"])[0],
+      }));
+
+    res.status(200).json({ success: true, movies });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: "Failed to fetch movies" });
   }
-};
+}
